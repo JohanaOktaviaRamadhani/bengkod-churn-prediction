@@ -2,29 +2,42 @@ import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
+import os
 
+# 1. KONFIGURASI HALAMAN
 st.set_page_config(page_title="Churn Predictor", layout="wide")
+
+# Inisialisasi session state untuk mengatur tab aktif secara otomatis
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "📋 Prediction Form"
+if "prediction_data" not in st.session_state:
+    st.session_state.prediction_data = None
 
 @st.cache_resource
 def load_artifacts():
-    model = joblib.load('C:\\Users\\hanao\\Downloads\\uas-bengkod\\bengkod-churn-prediction\\models\\best_model.joblib')
-    scaler = joblib.load('C:\\Users\\hanao\\Downloads\\uas-bengkod\\bengkod-churn-prediction\\models\\scaler.joblib')
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(BASE_DIR, 'models', 'best_model.joblib')
+    scaler_path = os.path.join(BASE_DIR, 'models', 'scaler.joblib')
+    
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
     return model, scaler
 
+# Load model dan scaler
 try:
     model, scaler = load_artifacts()
 except Exception as e:
     st.error(f"Gagal memuat model/scaler. Pastikan file .joblib ada di direktori yang benar. Error: {e}")
 
-#  JUDUL APLIKASI 
+# 2. JUDUL APLIKASI 
 st.title("📊 Customer Churn Prediction Dashboard")
 st.markdown("Aplikasi berbasis Machine Learning untuk menganalisis dan memprediksi potensi kehilangan pelanggan (*churn*) secara akurat.")
 st.write("")
 
-#  PEMBAGIAN HALAMAN MENGGUNAKAN TABS 
+# 3. PEMBAGIAN HALAMAN MENGGUNAKAN TABS 
 tab_info, tab_input, tab_result = st.tabs(["📈 Model Info", "📋 Prediction Form", "🔮 Result Analysis"])
 
-# TAB 1: MODEL INFO (Menggunakan Catatan Evaluasimu)
+# TAB 1: MODEL INFO
 with tab_info:
     st.header("✨ Best Model Performance Profile")
     
@@ -100,13 +113,7 @@ with tab_input:
 
         submitted = st.form_submit_button("Run Churn Prediction Analysis")
 
-
-# TAB 3: HASIL EVALUASI PREDIKSI
-with tab_result:
-    st.header("🔮 Prediction Analysis Result")
-    
     if submitted:
-        # Mapping Data Kategori ke Numerik (Menambahkan default fallback value jika ada input 'Unknown')
         gender_map = {"Female": 0, "Male": 1, "Unknown": 2}
         country_map = {"Bangladesh": 0, "Germany": 1, "UK": 2, "USA": 3, "India": 4}
         city_map = {"Berlin": 0, "Delhi": 1, "Dhaka": 2, "Hamburg": 3, "London": 4, "Mumbai": 5, "New York": 6}
@@ -158,15 +165,30 @@ with tab_result:
             'last_3_month_purchase_freq', 'days_to_last_purchase', 'signup_year', 'signup_month'
         ]
 
-        # Konversi ke DataFrame & Scaling
         input_df = pd.DataFrame([input_row])[feature_order]
         input_scaled = scaler.transform(input_df)
         
-        # Predict menggunakan model final
-        prediction = model.predict(input_scaled)
+        prediction = model.predict(input_scaled)[0]
         prediction_proba = model.predict_proba(input_scaled)[0][1]
 
-        # Tampilkan Hasil di Tab Analisis
+        st.session_state.prediction_data = {
+            'prediction': prediction,
+            'probability': prediction_proba
+        }
+        
+        st.rerun()
+
+
+# TAB 3: HASIL EVALUASI PREDIKSI
+
+with tab_result:
+    st.header("🔮 Prediction Analysis Result")
+    
+    if st.session_state.prediction_data is not None:
+        res = st.session_state.prediction_data
+        prediction = res['prediction']
+        prediction_proba = res['probability']
+
         col_res1, col_res2 = st.columns([1, 2])
         
         with col_res1:
@@ -175,18 +197,23 @@ with tab_result:
 
         with col_res2:
             st.write("### Verdict & Action Items")
-            if prediction[0] == 1:
+            if prediction == 1:
                 st.error(f"⚠️ **Warning: Pelanggan terindikasi kuat akan CHURN.**")
                 st.markdown("""
-                * **Rekomendasi Tindakan:** * Hubungi pelanggan secara personal melalui tim Customer Relationship Management (CRM).
-                    * Berikan penawaran/diskon loyalitas khusus sebelum masa aktif paket habis.
+                * **Rekomendasi Tindakan:**
+                    * Hubungi pelanggan secara personal melalui tim Customer Relationship Management (CRM).
+                    * Berikan penawaran khusus atau diskon loyalitas sebelum masa aktif paket habis.
                 """)
             else:
                 st.success(f"✅ **Success: Pelanggan diprediksi tetap LOYAL.**")
                 st.markdown("""
                 * **Rekomendasi Tindakan:**
-                    * Pertahankan kualitas interaksi saat ini.
-                    * Pelanggan cocok diikutsertakan ke dalam program *Upselling* produk premium.
+                    * Pertahankan kualitas interaksi dan kualitas layanan saat ini.
+                    * Pelanggan sangat potensial untuk diikutsertakan ke dalam program *Upselling* produk premium.
                 """)
+                
+        if st.button("Clear Analysis Result"):
+            st.session_state.prediction_data = None
+            st.rerun()
     else:
-        st.info("Silakan isi formulir di tab **📋 Prediction Form** dan tekan tombol analisis untuk melihat hasil di sini.")
+        st.info("Silakan isi formulir data pelanggan di tab **📋 Prediction Form** terlebih dahulu, kemudian klik tombol analisis.")
