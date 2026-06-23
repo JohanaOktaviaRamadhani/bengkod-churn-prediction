@@ -4,18 +4,13 @@ import joblib
 import numpy as np
 import os
 
-# 1. KONFIGURASI HALAMAN
 st.set_page_config(page_title="Churn Predictor", layout="wide")
-
-# Inisialisasi session state untuk mengatur tab aktif secara otomatis
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "📋 Prediction Form"
-if "prediction_data" not in st.session_state:
-    st.session_state.prediction_data = None
 
 @st.cache_resource
 def load_artifacts():
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+    BASE_DIR = os.path.dirname(APP_DIR)
+    
     model_path = os.path.join(BASE_DIR, 'models', 'best_model.joblib')
     scaler_path = os.path.join(BASE_DIR, 'models', 'scaler.joblib')
     
@@ -23,21 +18,17 @@ def load_artifacts():
     scaler = joblib.load(scaler_path)
     return model, scaler
 
-# Load model dan scaler
 try:
     model, scaler = load_artifacts()
 except Exception as e:
     st.error(f"Gagal memuat model/scaler. Pastikan file .joblib ada di direktori yang benar. Error: {e}")
 
-# 2. JUDUL APLIKASI 
 st.title("📊 Customer Churn Prediction Dashboard")
 st.markdown("Aplikasi berbasis Machine Learning untuk menganalisis dan memprediksi potensi kehilangan pelanggan (*churn*) secara akurat.")
 st.write("")
 
-# 3. PEMBAGIAN HALAMAN MENGGUNAKAN TABS 
-tab_info, tab_input, tab_result = st.tabs(["📈 Model Info", "📋 Prediction Form", "🔮 Result Analysis"])
+tab_info, tab_input = st.tabs(["📈 Model Info", "📋 Prediction Form & Analysis"])
 
-# TAB 1: MODEL INFO
 with tab_info:
     st.header("✨ Best Model Performance Profile")
     
@@ -64,57 +55,87 @@ with tab_info:
     💡 **Key Insight Evaluasi:** Melalui kombinasi Preprocessing dan Hyperparameter Tuning, model berhasil mengatasi kendala *overfitting* dan tidak lagi 'buta' terhadap kelas minoritas. Dengan nilai *Recall* mencapai **81%**, model sangat sensitif dalam menjaring pelanggan yang berpotensi *churn* dengan tingkat kegagalan deteksi (*miss*) yang sangat minim.
     """)
 
-
-# TAB 2: INPUT PARAMETER PELANGGAN
 with tab_input:
     st.header("📋 Input Parameter Pelanggan")
     st.caption("Silakan lengkapi data profil dan aktivitas pelanggan di bawah ini untuk memulai analisis.")
 
     with st.form("churn_input_form"):
-        col1, col2, col3 = st.columns(3)
         
-        with col1:
-            st.markdown("##### **Demografi & Akun**")
-            gender = st.selectbox("Gender", options=["Male", "Female", "Unknown"])
-            country = st.selectbox("Country", options=["Germany", "India", "Bangladesh", "USA", "UK"])
-            city = st.selectbox("City", options=["London", "Mumbai", "Dhaka", "New York", "Delhi", "Berlin", "Hamburg"])
-            acquisition_channel = st.selectbox("Acquisition Channel", options=["Organic", "Google Ads", "Facebook Ads", "Referral", "Email"])
-            device_type = st.selectbox("Device Type", options=["Tablet", "Mobile", "Desktop"])
-            subscription_type = st.selectbox("Subscription Type", options=["Monthly", "Annual"])
-            coupon_code = st.selectbox("Coupon Code", options=["No_Coupon", "REF10", "SALE15", "NEW20"])
-            payment_method = st.selectbox("Payment Method", options=["UPI", "PayPal", "SEPA", "BKash", "Card"])
-            is_premium_user = st.radio("Is Premium User?", options=[0, 1], index=0, format_func=lambda x: "Yes" if x == 1 else "No")
-            discount_used = st.radio("Discount Used?", options=[0, 1], index=0, format_func=lambda x: "Yes" if x == 1 else "No")
+        with st.container(border=True):
+            st.markdown("### 👤 Demografi & Informasi Akun")
+            c1_1, c1_2, c1_3 = st.columns(3)
+            with c1_1:
+                gender = st.selectbox("Gender", options=["Male", "Female"])
+                country = st.selectbox("Country", options=["Germany", "India", "Bangladesh", "USA", "UK"])
+                city = st.selectbox("City", options=["London", "Mumbai", "Dhaka", "New York", "Delhi", "Berlin", "Hamburg"])
+            with c1_2:
+                acquisition_channel = st.selectbox("Acquisition Channel", options=["Organic", "Google Ads", "Facebook Ads", "Referral", "Email"])
+                device_type = st.selectbox("Device Type", options=["Tablet", "Mobile", "Desktop"])
+                subscription_type = st.selectbox("Subscription Type", options=["Monthly", "Annual"])
+            with c1_3:
+                payment_method = st.selectbox("Payment Method", options=["UPI", "PayPal", "SEPA", "BKash", "Card"])
+                is_premium_user = st.radio("Is Premium User?", options=[0, 1], index=0, format_func=lambda x: "Yes" if x == 1 else "No", horizontal=True)
+                
+        st.write("") 
 
-        with col2:
-            st.markdown("##### **Aktivitas & Transaksi**")
-            age = st.number_input("Age", min_value=0.0, max_value=95.0, value=30.0)
-            total_visits = st.number_input("Total Visits", min_value=0, max_value=31, value=5)
-            avg_session_time = st.number_input("Avg Session Time (minutes)", min_value=0.0, max_value=20.0, value=8.0)
-            pages_per_session = st.number_input("Pages Per Session", min_value=0.0, max_value=11.0, value=4.0)
-            email_open_rate = st.number_input("Email Open Rate (0.0 - 1.0)", min_value=0.0, max_value=1.0, value=0.5)
-            email_click_rate = st.number_input("Email Click Rate (0.0 - 0.5)", min_value=0.0, max_value=0.5, value=0.1)
-            total_spent = st.number_input("Total Spent", min_value=0.0, max_value=16000.0, value=500.0)
-            avg_order_value = st.number_input("Avg Order Value", min_value=0.0, max_value=155.0, value=50.0)
-            support_tickets = st.number_input("Support Tickets", min_value=0, max_value=9, value=0)
-            refund_requested = st.radio("Refund Requested?", options=[0, 1], index=0, format_func=lambda x: "Yes" if x == 1 else "No")
+        with st.container(border=True):
+            st.markdown("### 📈 Aktivitas & Riwayat Transaksi")
+            c2_1, c2_2, c2_3 = st.columns(3)
+            with c2_1:
+                age = st.number_input("Age", min_value=0.0, max_value=95.0, value=30.0)
+                total_visits = st.number_input("Total Visits", min_value=0, max_value=31, value=5)
+                avg_session_time = st.number_input("Avg Session Time (minutes)", min_value=0.0, max_value=20.0, value=8.0)
+            with c2_2:
+                pages_per_session = st.number_input("Pages Per Session", min_value=0.0, max_value=11.0, value=4.0)
+                email_open_rate = st.number_input("Email Open Rate (0.0 - 1.0)", min_value=0.0, max_value=1.0, value=0.5)
+                email_click_rate = st.number_input("Email Click Rate (0.0 - 0.5)", min_value=0.0, max_value=0.5, value=0.1)
+            with c2_3:
+                total_spent = st.number_input("Total Spent", min_value=0.0, max_value=16000.0, value=500.0)
+                avg_order_value = st.number_input("Avg Order Value", min_value=0.0, max_value=155.0, value=50.0)
+                discount_used = st.radio("Discount Used?", options=[0, 1], index=0, format_func=lambda x: "Yes" if x == 1 else "No", horizontal=True)
+                coupon_code = st.selectbox("Coupon Code", options=["No_Coupon", "REF10", "SALE15", "NEW20"])
 
-        with col3:
-            st.markdown("##### **Metrik Kepuasan & Waktu**")
-            delivery_delay_days = st.number_input("Delivery Delay Days", min_value=0, max_value=11, value=0)
-            marketing_spend_per_user = st.number_input("Marketing Spend Per User", min_value=0.0, max_value=30.0, value=5.0)
-            lifetime_value = st.number_input("Lifetime Value", min_value=0.0, max_value=3800.0, value=1000.0)
-            last_3_month_purchase_freq = st.number_input("Last 3 Month Purchase Freq", min_value=0, max_value=14, value=2)
-            satisfaction_score = st.slider("Satisfaction Score", min_value=1.0, max_value=5.0, value=4.0, step=1.0)
-            nps_score = st.slider("NPS Score", min_value=0, max_value=10, value=8)
-            days_to_last_purchase = st.number_input("Days to Last Purchase", min_value=0, value=15)
-            signup_year = st.number_input("Signup Year", min_value=2010, max_value=2026, value=2025)
-            signup_month = st.slider("Signup Month", min_value=1, max_value=12, value=6)
+        st.write("") 
 
-        submitted = st.form_submit_button("Run Churn Prediction Analysis")
+        with st.container(border=True):
+            st.markdown("### ⭐️ Kepuasan Pelanggan & Interaksi Sistem")
+            
+            c3_1, c3_2, c3_3 = st.columns(3)
+            with c3_1:
+                support_tickets = st.number_input("Support Tickets", min_value=0, max_value=9, value=0)
+                refund_requested = st.radio("Refund Requested?", options=[0, 1], index=0, format_func=lambda x: "Yes" if x == 1 else "No", horizontal=True)
+            with c3_2:
+                delivery_delay_days = st.number_input("Delivery Delay Days", min_value=0, max_value=11, value=0)
+                marketing_spend_per_user = st.number_input("Marketing Spend Per User", min_value=0.0, max_value=30.0, value=5.0)
+            with c3_3:
+                lifetime_value = st.number_input("Lifetime Value", min_value=0.0, max_value=3800.0, value=1000.0)
+                last_3_month_purchase_freq = st.number_input("Last 3 Month Purchase Freq", min_value=0, max_value=14, value=2)
+            
+            st.divider() 
+            
+            c3_b1, c3_b2 = st.columns(2)
+            with c3_b1:
+                satisfaction_score = st.slider("Satisfaction Score", min_value=1.0, max_value=5.0, value=4.0, step=1.0)
+                days_to_last_purchase = st.number_input("Days to Last Purchase", min_value=0, value=15)
+            with c3_b2:
+                nps_score = st.slider("NPS Score", min_value=0, max_value=10, value=8)
+                c_date1, c_date2 = st.columns(2)
+                with c_date1:
+                    signup_year = st.number_input("Signup Year", min_value=2010, max_value=2026, value=2025)
+                with c_date2:
+                    signup_month = st.slider("Signup Month", min_value=1, max_value=12, value=6)
+
+        st.write("") 
+        
+        col_btn, _ = st.columns([1, 2])
+        with col_btn:
+            submitted = st.form_submit_button("🚀 Run Churn Prediction Analysis", use_container_width=True)
 
     if submitted:
-        gender_map = {"Female": 0, "Male": 1, "Unknown": 2}
+        st.write("---")
+        st.header("🔮 Prediction Analysis Result")
+        
+        gender_map = {"Female": 0, "Male": 1}
         country_map = {"Bangladesh": 0, "Germany": 1, "UK": 2, "USA": 3, "India": 4}
         city_map = {"Berlin": 0, "Delhi": 1, "Dhaka": 2, "Hamburg": 3, "London": 4, "Mumbai": 5, "New York": 6}
         channel_map = {"Email": 0, "Facebook Ads": 1, "Google Ads": 2, "Organic": 3, "Referral": 4}
@@ -124,7 +145,7 @@ with tab_input:
         payment_map = {"BKash": 0, "Card": 1, "PayPal": 2, "SEPA": 3, "UPI": 4}
 
         input_row = {
-            'gender': gender_map.get(gender, 2),
+            'gender': gender_map.get(gender, 1),
             'age': age,
             'country': country_map.get(country, 0),
             'city': city_map.get(city, 0),
@@ -168,52 +189,30 @@ with tab_input:
         input_df = pd.DataFrame([input_row])[feature_order]
         input_scaled = scaler.transform(input_df)
         
-        prediction = model.predict(input_scaled)[0]
+        prediction = model.predict(input_scaled)
         prediction_proba = model.predict_proba(input_scaled)[0][1]
-
-        st.session_state.prediction_data = {
-            'prediction': prediction,
-            'probability': prediction_proba
-        }
-        
-        st.rerun()
-
-
-# TAB 3: HASIL EVALUASI PREDIKSI
-
-with tab_result:
-    st.header("🔮 Prediction Analysis Result")
-    
-    if st.session_state.prediction_data is not None:
-        res = st.session_state.prediction_data
-        prediction = res['prediction']
-        prediction_proba = res['probability']
 
         col_res1, col_res2 = st.columns([1, 2])
         
         with col_res1:
-            st.write("### Probability Meter")
-            st.metric(label="Churn Probability Score", value=f"{prediction_proba:.2%}")
+            with st.container(border=True):
+                st.write("### 📊 Probability Meter")
+                st.metric(label="Churn Probability Score", value=f"{prediction_proba:.2%}")
 
         with col_res2:
-            st.write("### Verdict & Action Items")
-            if prediction == 1:
-                st.error(f"⚠️ **Warning: Pelanggan terindikasi kuat akan CHURN.**")
-                st.markdown("""
-                * **Rekomendasi Tindakan:**
-                    * Hubungi pelanggan secara personal melalui tim Customer Relationship Management (CRM).
-                    * Berikan penawaran khusus atau diskon loyalitas sebelum masa aktif paket habis.
-                """)
-            else:
-                st.success(f"✅ **Success: Pelanggan diprediksi tetap LOYAL.**")
-                st.markdown("""
-                * **Rekomendasi Tindakan:**
-                    * Pertahankan kualitas interaksi dan kualitas layanan saat ini.
-                    * Pelanggan sangat potensial untuk diikutsertakan ke dalam program *Upselling* produk premium.
-                """)
-                
-        if st.button("Clear Analysis Result"):
-            st.session_state.prediction_data = None
-            st.rerun()
-    else:
-        st.info("Silakan isi formulir data pelanggan di tab **📋 Prediction Form** terlebih dahulu, kemudian klik tombol analisis.")
+            with st.container(border=True):
+                st.write("### 🎯 Verdict & Action Items")
+                if prediction[0] == 1:
+                    st.error(f"⚠️ **Warning: Pelanggan terindikasi kuat akan CHURN.**")
+                    st.markdown("""
+                    * **Rekomendasi Tindakan:**
+                        * Segera hubungi pelanggan secara personal melalui tim CRM.
+                        * Berikan insentif berupa kode promo eksklusif atau diskon loyalitas sebelum langganan berakhir.
+                    """)
+                else:
+                    st.success(f"✅ **Success: Pelanggan diprediksi tetap LOYAL.**")
+                    st.markdown("""
+                    * **Rekomendasi Tindakan:**
+                        * Pertahankan pola layanan dan kualitas interaksi saat ini.
+                        * Pelanggan masuk kategori ideal untuk ditawarkan program *Upselling* produk premium.
+                    """)
