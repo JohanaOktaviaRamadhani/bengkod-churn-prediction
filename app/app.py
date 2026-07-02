@@ -47,12 +47,12 @@ with tab_info:
         """)
     
     with col_b:
-        st.metric(label="Overall Accuracy", value="85.13%")
-        st.metric(label="F1-Score Macro", value="0.7681", delta="+0.2126 vs Baseline")
-        st.metric(label="Recall Kelas Minoritas (Churn)", value="81.00%", delta="+69.00% vs Baseline")
+        st.metric(label="Overall Accuracy", value="84.89%")  
+        st.metric(label="F1-Score Macro", value="0.7604", delta="+0.2126 vs Baseline")
+        st.metric(label="Recall Kelas Minoritas (Churn)", value="77.00%", delta="+69.00% vs Baseline") 
 
     st.info("""
-    💡 **Key Insight Evaluasi:** Melalui kombinasi Preprocessing dan Hyperparameter Tuning, model berhasil mengatasi kendala *overfitting* dan tidak lagi 'buta' terhadap kelas minoritas. Dengan nilai *Recall* mencapai **81%**, model sangat sensitif dalam menjaring pelanggan yang berpotensi *churn* dengan tingkat kegagalan deteksi (*miss*) yang sangat minim.
+    💡 **Key Insight Evaluasi:** Melalui kombinasi Preprocessing dan Hyperparameter Tuning, model berhasil mengatasi kendala *overfitting* dan tidak lagi 'buta' terhadap kelas minoritas. Dengan nilai *Recall* mencapai **77%**, model sangat sensitif dalam menjaring pelanggan yang berpotensi *churn* dengan tingkat kegagalan deteksi (*miss*) yang minim.
     """)
 
 with tab_input:
