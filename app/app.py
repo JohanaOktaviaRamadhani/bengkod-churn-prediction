@@ -29,6 +29,10 @@ st.write("")
 
 tab_info, tab_input = st.tabs(["📈 Model Info", "📋 Prediction Form & Analysis"])
 
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 with tab_info:
     st.header("✨ Best Model Performance Profile")
     
@@ -36,24 +40,47 @@ with tab_info:
     with col_a:
         st.markdown("""
         ### **Project Overview & Selection**
-        Model utama yang dideploy pada sistem ini adalah **Random Forest Classifier (After Tuning)**. Model ini dipilih setelah melalui proses komparasi ketat melawan model baseline, menangani masalah *data imbalance*, serta dioptimalkan otomatis menggunakan **Optuna Hyperparameter Tuning (50 Trials)**.
+        Model utama yang dideploy pada sistem ini adalah **Random Forest Classifier (After Tuning)**. Model ini dipilih setelah melalui proses komparasi ketat melawan model baseline, menangani masalah *data imbalance*, serta dioptimalkan otomatis menggunakan **Optuna Hyperparameter Tuning**.
         
         ### **Hyperparameters (Optuna Optimized):**
-        * `n_estimators`: **411**
+        * `n_estimators`: **136**
         * `max_depth`: **10**
-        * `min_samples_split`: **7**
-        * `min_samples_leaf`: **4**
+        * `min_samples_split`: **20**
+        * `min_samples_leaf`: **5**
         * `max_features`: **'sqrt'**
         """)
     
     with col_b:
         st.metric(label="Overall Accuracy", value="84.89%")  
-        st.metric(label="F1-Score Macro", value="0.7604", delta="+0.2126 vs Baseline")
-        st.metric(label="Recall Kelas Minoritas (Churn)", value="77.00%", delta="+69.00% vs Baseline") 
+        st.metric(label="F1-Score Macro", value="0.7604", delta="+0.2049 vs Baseline")
+        st.metric(label="Recall Kelas Minoritas (Churn)", value="77.00%", delta="+65.00% vs Baseline") 
 
     st.info("""
     💡 **Key Insight Evaluasi:** Melalui kombinasi Preprocessing dan Hyperparameter Tuning, model berhasil mengatasi kendala *overfitting* dan tidak lagi 'buta' terhadap kelas minoritas. Dengan nilai *Recall* mencapai **77%**, model sangat sensitif dalam menjaring pelanggan yang berpotensi *churn* dengan tingkat kegagalan deteksi (*miss*) yang minim.
     """)
+    
+    st.write("---")
+    
+    st.subheader("🎯 Top 10 Driver Faktor Churn (Feature Importances)")
+    
+    feature_data = {
+        "Feature": [
+            "satisfaction_score", "total_spent", "support_tickets", 
+            "marketing_spend_per_user", "payment_method", "lifetime_value", 
+            "email_open_rate", "device_type", "discount_used", "email_click_rate"
+        ],
+        "Importance": [0.267994, 0.228223, 0.049411, 0.022830, 0.022279, 0.022230, 0.021384, 0.021376, 0.021052, 0.020788]
+    }
+    df_features = pd.DataFrame(feature_data).sort_values(by="Importance", ascending=False)
+    
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    sns.barplot(x='Importance', y='Feature', data=df_features, ax=ax)
+    ax.set_title('Feature Importances from Random Forest Model')
+    ax.set_xlabel('Importance')
+    ax.set_ylabel('Feature')
+    plt.tight_layout()
+    
+    st.pyplot(fig)
 
 with tab_input:
     st.header("📋 Input Parameter Pelanggan")
